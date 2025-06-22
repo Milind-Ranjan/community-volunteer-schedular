@@ -1,0 +1,30 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Supabase Configuration
+SUPABASE_URL=https://rdpcxeyeljmlfwbrrenc.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcGN4ZXllbGptbGZ3YnJyZW5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MzcxMDQsImV4cCI6MjA2NjExMzEwNH0.A6woAhKR3CoCtTkVUaBPXp8Csi1MqSMaRizlsyAer5E
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkcGN4ZXllbGptbGZ3YnJyZW5jIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDUzNzEwNCwiZXhwIjoyMDY2MTEzMTA0fQ.6K_XHmuJMXXgzTH3dfaLyBD8YiuaFm81Z2_pT3CONos
+# Optional: Additional configuration
