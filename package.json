@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt generate",
+    "build": "NODE_OPTIONS='--no-warnings' nuxt generate --no-nitro-minify",
     "dev": "nuxt dev", 
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare || echo 'Prepare failed, continuing...'"
+    "postinstall": "echo 'Skipping nuxt prepare to avoid native binding issues'"
   },
   "engines": {
     "node": ">=18"
