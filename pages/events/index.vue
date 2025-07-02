@@ -19,6 +19,21 @@
             Discover meaningful volunteer opportunities in your community and make a lasting impact
           </p>
           <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <NuxtLink 
+              v-if="authStore.isOrganizer"
+              to="/events/create" 
+              class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-4 rounded-2xl hover:from-green-700 hover:to-green-800 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform flex items-center justify-center"
+            >
+              <PlusIcon class="w-6 h-6 mr-2" />
+              Create New Event
+            </NuxtLink>
+            <NuxtLink 
+              v-else-if="!authStore.isAuthenticated"
+              to="/auth/signin" 
+              class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-blue-800 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              Sign In to Join Events
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -198,7 +213,7 @@
             to="/events/create" 
             class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-2xl hover:from-indigo-700 hover:to-purple-700 font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 transform"
           >
-            Create First Event
+            Create Your First Event
           </NuxtLink>
         </div>
       </div>
@@ -397,7 +412,8 @@ import {
   ClockIcon,
   UserGroupIcon,
   Squares2X2Icon,
-  ListBulletIcon
+  ListBulletIcon,
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 import type { Event } from '~/types'
 
@@ -520,6 +536,11 @@ const getRegistrationProgress = (eventId: string, maxVolunteers: number): number
 }
 
 const canRegister = (event: Event): boolean => {
+  // Only volunteers can register for events
+  if (!authStore.isAuthenticated || authStore.profile?.role !== 'volunteer') {
+    return false
+  }
+  
   const eventDate = new Date(event.date)
   const today = new Date()
   return eventDate > today && 
@@ -538,6 +559,9 @@ const handleQuickRegister = async (eventId: string) => {
   const { error } = await eventsStore.registerForEvent(eventId)
   if (error) {
     console.error('Registration failed:', error)
+  } else {
+    // Refresh registration count after successful registration
+    await refreshRegistrationCount(eventId)
   }
 }
 
@@ -551,8 +575,16 @@ const fetchRegistrationCounts = async () => {
   for (const event of eventsStore.events) {
     const { data } = await eventsStore.fetchEventRegistrations(event.id)
     if (data) {
-      registrationCounts.value[event.id] = data.length
+      // Filter out cancelled registrations to get accurate count
+      registrationCounts.value[event.id] = data.filter(reg => reg.status !== 'cancelled').length
     }
+  }
+}
+
+const refreshRegistrationCount = async (eventId: string) => {
+  const { data } = await eventsStore.fetchEventRegistrations(eventId)
+  if (data) {
+    registrationCounts.value[eventId] = data.filter(reg => reg.status !== 'cancelled').length
   }
 }
 

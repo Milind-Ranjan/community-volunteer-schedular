@@ -11,19 +11,20 @@
         <div class="text-center space-y-8">
           
           <!-- Main Headline -->
-          <div class="space-y-6 animate-slide-up">
-            <h1 class="text-5xl sm:text-7xl font-extrabold text-gray-900 leading-tight">
-              Make a Difference in Your
-              <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 relative">
-                Community
-                <div class="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transform scale-x-0 animate-scale-x"></div>
-              </span>
-            </h1>
-            <p class="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-              Connect with meaningful volunteer opportunities and organize impactful community events. 
-              <span class="text-blue-600 font-semibold">Simple. Powerful. Community-driven.</span>
-            </p>
-          </div>
+<!-- Main Headline -->
+<div class="space-y-8 px-4 sm:px-8 max-w-5xl mx-auto">
+  <h1 class="text-4xl sm:text-6xl font-extrabold text-gray-900 leading-snug sm:leading-tight mb-10 text-center">
+    Make a Difference in Your
+    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 relative inline-block">
+      Community
+      <div class="absolute -bottom-1 sm:-bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transform scale-x-0 animate-scale-x"></div>
+    </span>
+  </h1>
+    <p class="text-lg sm:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed text-center">
+      Connect with meaningful volunteer opportunities and organize impactful community events. 
+      <span class="text-blue-600 font-semibold">Simple. Powerful. Community-driven.</span>
+  </p>
+</div>
           
           <!-- CTA Buttons -->
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 animate-fade-in-delayed">
@@ -74,9 +75,6 @@
     <section class="py-24 bg-white relative">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-20">
-          <div class="inline-flex items-center px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium text-sm mb-6">
-            Features
-          </div>
           <h2 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
             Why Choose VolunteerHub?
           </h2>
@@ -158,10 +156,6 @@
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Enhanced Header -->
         <div class="text-center mb-16">
-          <div class="inline-flex items-center px-6 py-3 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-700 font-semibold text-sm mb-6 shadow-sm">
-            <CalendarDaysIcon class="w-4 h-4 mr-2" />
-            Upcoming Events
-          </div>
           <h2 class="text-5xl font-bold text-gray-900 mb-6">
             Join Amazing 
             <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
@@ -270,24 +264,77 @@
             </div>
           </div>
 
-          <!-- Events Cards -->
-          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <EventCard 
-              v-for="(event, index) in featuredEvents" 
-              :key="event.id" 
-              :event="event" 
-              :show-actions="false"
-              class="transform hover:scale-105 transition-all duration-300 hover:shadow-2xl"
-              :style="{ animationDelay: `${index * 100}ms` }"
-            />
-          </div>
+          <!-- Events Carousel -->
+          <div class="relative">
+            <!-- Carousel Container -->
+            <div 
+              class="overflow-hidden rounded-3xl mx-16"
+              @touchstart="handleTouchStart"
+              @touchmove="handleTouchMove"
+              @touchend="handleTouchEnd"
+            >
+              <div 
+                ref="carouselRef"
+                class="flex transition-transform duration-700 ease-in-out"
+                :style="{ transform: `translateX(-${currentSlide * slideWidth}%)` }"
+              >
+                <div 
+                  v-for="(event, index) in featuredEvents" 
+                  :key="event.id"
+                  class="flex-shrink-0"
+                  :class="[
+                    'px-4',
+                    carouselSettings.slidesToShow === 1 ? 'w-full' :
+                    carouselSettings.slidesToShow === 2 ? 'w-1/2' : 'w-1/3'
+                  ]"
+                >
+                  <EventCard 
+                    :event="event" 
+                    :show-actions="false"
+                    :registration-count="registrationCounts[event.id] || 0"
+                    @registration-changed="handleRegistrationChanged"
+                    class="transform hover:scale-105 transition-all duration-300 hover:shadow-2xl h-full"
+                  />
+                </div>
+              </div>
+            </div>
 
-          <!-- Load More Section -->
-          <div class="text-center pt-8">
-            <div class="inline-flex items-center space-x-4">
-              <div class="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent flex-1 w-24"></div>
-              <span class="text-gray-500 font-medium">More events available</span>
-              <div class="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent flex-1 w-24"></div>
+            <!-- Navigation Arrows - positioned outside the cards -->
+            <button
+              @click="previousSlide"
+              class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm hover:bg-white text-blue-600 p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group"
+              :class="{ 'opacity-50 cursor-not-allowed': totalSlides <= 1 }"
+              :disabled="totalSlides <= 1"
+            >
+              <svg class="w-6 h-6 group-hover:-translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <button
+              @click="nextSlide"
+              class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 backdrop-blur-sm hover:bg-white text-blue-600 p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-110 group"
+              :class="{ 'opacity-50 cursor-not-allowed': totalSlides <= 1 }"
+              :disabled="totalSlides <= 1"
+            >
+              <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <!-- Dots Indicator -->
+            <div v-if="totalSlides > 1" class="flex justify-center mt-8 space-x-3">
+              <button
+                v-for="(dot, index) in totalSlides"
+                :key="index"
+                @click="goToSlide(index)"
+                class="w-3 h-3 rounded-full transition-all duration-300 transform hover:scale-125"
+                :class="[
+                  currentSlide === index 
+                    ? 'bg-blue-600 shadow-lg' 
+                    : 'bg-blue-200 hover:bg-blue-400'
+                ]"
+              />
             </div>
           </div>
         </div>
@@ -337,6 +384,17 @@
         </div>
       </div>
     </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 border-t border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="text-center">
+          <p class="text-gray-600 text-sm">
+            Created by <span class="font-semibold text-blue-600">Milind Ranjan</span>
+          </p>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -350,16 +408,150 @@ import {
 const authStore = useAuthStore()
 const eventsStore = useEventsStore()
 
+// Track registration counts for events
+const registrationCounts = ref<Record<string, number>>({})
+
+// Carousel state
+const currentSlide = ref(0)
+const carouselRef = ref(null)
+
+// Responsive carousel settings
+const carouselSettings = computed(() => {
+  if (process.client) {
+    const width = window.innerWidth
+    if (width < 768) return { slidesToShow: 1 }
+    if (width < 1024) return { slidesToShow: 2 }
+    return { slidesToShow: 3 }
+  }
+  return { slidesToShow: 3 }
+})
+
+// Computed properties for carousel
+const slideWidth = computed(() => 100 / carouselSettings.value.slidesToShow)
+const totalSlides = computed(() => {
+  if (featuredEvents.value.length <= carouselSettings.value.slidesToShow) return 0
+  return Math.max(0, featuredEvents.value.length - carouselSettings.value.slidesToShow + 1)
+})
+
 // Fetch featured events on component mount
 const featuredEvents = computed(() => 
   eventsStore.upcomingEvents.slice(0, 6)
 )
+
+const fetchRegistrationCounts = async () => {
+  for (const event of featuredEvents.value) {
+    const { data } = await eventsStore.fetchEventRegistrations(event.id)
+    if (data) {
+      registrationCounts.value[event.id] = data.filter(reg => reg.status !== 'cancelled').length
+    }
+  }
+}
+
+const handleRegistrationChanged = async (eventId: string) => {
+  const { data } = await eventsStore.fetchEventRegistrations(eventId)
+  if (data) {
+    registrationCounts.value[eventId] = data.filter(reg => reg.status !== 'cancelled').length
+  }
+}
+
+// Carousel control functions
+const nextSlide = () => {
+  console.log('Next slide clicked:', { 
+    currentSlide: currentSlide.value, 
+    totalSlides: totalSlides.value,
+    featuredEventsLength: featuredEvents.value.length,
+    slidesToShow: carouselSettings.value.slidesToShow
+  })
+  
+  if (totalSlides.value <= 1) {
+    console.log('No navigation needed - not enough slides')
+    return
+  }
+  
+  const newSlide = (currentSlide.value + 1) % totalSlides.value
+  console.log('Moving to slide:', newSlide)
+  currentSlide.value = newSlide
+}
+
+const previousSlide = () => {
+  console.log('Previous slide clicked:', { 
+    currentSlide: currentSlide.value, 
+    totalSlides: totalSlides.value,
+    featuredEventsLength: featuredEvents.value.length,
+    slidesToShow: carouselSettings.value.slidesToShow
+  })
+  
+  if (totalSlides.value <= 1) {
+    console.log('No navigation needed - not enough slides')
+    return
+  }
+  
+  const newSlide = currentSlide.value === 0 ? totalSlides.value - 1 : currentSlide.value - 1
+  console.log('Moving to slide:', newSlide)
+  currentSlide.value = newSlide
+}
+
+const goToSlide = (index: number) => {
+  console.log('Go to slide clicked:', index)
+  currentSlide.value = index
+}
+
+// Handle window resize for responsive behavior
+const handleResize = () => {
+  // Reset slide position if it's out of bounds after resize
+  if (currentSlide.value >= totalSlides.value) {
+    currentSlide.value = Math.max(0, totalSlides.value - 1)
+  }
+}
+
+// Touch/swipe handling
+const touchStart = ref(0)
+const touchEnd = ref(0)
+const minSwipeDistance = 50
+
+const handleTouchStart = (e: TouchEvent) => {
+  touchStart.value = e.targetTouches[0].clientX
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+  touchEnd.value = e.targetTouches[0].clientX
+}
+
+const handleTouchEnd = () => {
+  if (!touchStart.value || !touchEnd.value) return
+  
+  const distance = touchStart.value - touchEnd.value
+  const isLeftSwipe = distance > minSwipeDistance
+  const isRightSwipe = distance < -minSwipeDistance
+
+  if (isLeftSwipe) {
+    nextSlide()
+  } else if (isRightSwipe) {
+    previousSlide()
+  }
+  
+  // Reset
+  touchStart.value = 0
+  touchEnd.value = 0
+}
 
 onMounted(async () => {
   await eventsStore.fetchEvents({ 
     status: 'published', 
     upcoming: true 
   })
+  await fetchRegistrationCounts()
+  
+  // Initialize carousel resize handler
+  if (process.client) {
+    window.addEventListener('resize', handleResize)
+  }
+})
+
+onUnmounted(() => {
+  if (process.client) {
+    window.removeEventListener('resize', handleResize)
+  }
 })
 
 // SEO

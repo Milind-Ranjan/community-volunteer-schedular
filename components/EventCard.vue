@@ -147,6 +147,11 @@ const props = withDefaults(defineProps<Props>(), {
   registrationCount: 0
 })
 
+// Emit events for parent to handle registration changes
+const emit = defineEmits<{
+  registrationChanged: [eventId: string]
+}>()
+
 const authStore = useAuthStore()
 const eventsStore = useEventsStore()
 const loading = ref(false)
@@ -163,6 +168,11 @@ const isEventFull = computed(() => {
 })
 
 const canRegister = computed(() => {
+  // Only volunteers can register for events
+  if (!authStore.isAuthenticated || authStore.profile?.role !== 'volunteer') {
+    return false
+  }
+  
   const eventDate = new Date(props.event.date)
   const today = new Date()
   return eventDate > today && props.event.status === 'published'
@@ -230,6 +240,9 @@ const handleRegister = async () => {
   if (error) {
     // Show error toast/notification
     console.error('Registration failed:', error)
+  } else {
+    // Emit event to parent to refresh registration count
+    emit('registrationChanged', props.event.id)
   }
   
   loading.value = false
@@ -244,6 +257,9 @@ const handleCancelRegistration = async () => {
   if (error) {
     // Show error toast/notification
     console.error('Cancellation failed:', error)
+  } else {
+    // Emit event to parent to refresh registration count
+    emit('registrationChanged', props.event.id)
   }
   
   loading.value = false

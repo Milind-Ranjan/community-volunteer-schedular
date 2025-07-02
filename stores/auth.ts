@@ -18,16 +18,10 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      // First, create the user without metadata to avoid trigger issues
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          data: {
-            name: userData.name,
-            phone: userData.phone,
-            role: userData.role
-          }
-        }
+        password
       })
 
       if (signUpError) {
@@ -35,7 +29,34 @@ export const useAuthStore = defineStore('auth', () => {
         return { data: null, error: signUpError.message }
       }
 
-      return { data, error: null }
+      // If user was created successfully, manually create the profile
+      if (authData.user) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              email: email,
+              name: userData.name,
+              phone: userData.phone || null,
+              role: userData.role
+            })
+            .select()
+            .single()
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError)
+            // If profile creation fails, we should still return success
+            // since the user was created successfully
+            console.log('User created but profile creation failed. This can be handled later.')
+          }
+        } catch (profileErr) {
+          console.error('Profile creation exception:', profileErr)
+          // Don't fail the signup process if profile creation fails
+        }
+      }
+
+      return { data: authData, error: null }
     } catch (err: any) {
       error.value = err.message
       return { data: null, error: err.message }
@@ -108,6 +129,34 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (fetchError) {
         console.error('Error fetching profile:', fetchError)
+        
+        // If profile doesn't exist, create it
+        if (fetchError.code === 'PGRST116') {
+          console.log('Profile not found, creating default profile...')
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.value.id,
+              email: user.value.email || '',
+              name: user.value.user_metadata?.name || 'User',
+              role: user.value.user_metadata?.role || 'volunteer',
+              phone: user.value.user_metadata?.phone || null
+            })
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('Error creating profile:', createError)
+            error.value = createError.message
+            return
+          }
+
+          profile.value = newProfile
+          console.log('Profile created successfully:', newProfile)
+          return
+        }
+        
         error.value = fetchError.message
         return
       }
@@ -160,10 +209,10 @@ export const useAuthStore = defineStore('auth', () => {
   }, { immediate: true })
 
   return {
-    user: readonly(user),
-    profile: readonly(profile),
-    loading: readonly(loading),
-    error: readonly(error),
+    user,
+    profile,
+    loading,
+    error,
     isAuthenticated,
     isOrganizer,
     isAdmin,

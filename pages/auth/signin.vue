@@ -203,9 +203,9 @@ const handleSignIn = async () => {
       return
     }
 
-    // Redirect to dashboard if organizer, otherwise to events
+    // Redirect to my-events for organizers (their dashboard), events for volunteers
     if (authStore.isOrganizer) {
-      await navigateTo('/dashboard')
+      await navigateTo('/my-events')
     } else {
       await navigateTo('/events')
     }

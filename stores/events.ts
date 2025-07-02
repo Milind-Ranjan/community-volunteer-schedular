@@ -91,13 +91,35 @@ export const useEventsStore = defineStore('events', () => {
 
   const updateEvent = async (eventId: string, updates: Partial<Event>) => {
     try {
+      const authStore = useAuthStore()
+      if (!authStore.user) throw new Error('Must be logged in to update events')
+
       loading.value = true
       error.value = null
+
+      // First verify ownership
+      const { data: eventData, error: fetchError } = await supabase
+        .from('events')
+        .select('organizer_id')
+        .eq('id', eventId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      console.log('=== UPDATE Authorization Check ===')
+      console.log('Event organizer_id:', eventData.organizer_id)
+      console.log('Current user ID:', authStore.user.id)
+      console.log('Match:', eventData.organizer_id === authStore.user.id)
+
+      if (eventData.organizer_id !== authStore.user.id) {
+        throw new Error('You can only update events you created')
+      }
 
       const { data, error: updateError } = await supabase
         .from('events')
         .update(updates)
         .eq('id', eventId)
+        .eq('organizer_id', authStore.user.id) // Double-check ownership in query
         .select(`
           *,
           organizer:profiles(name, email)
@@ -122,13 +144,35 @@ export const useEventsStore = defineStore('events', () => {
 
   const deleteEvent = async (eventId: string) => {
     try {
+      const authStore = useAuthStore()
+      if (!authStore.user) throw new Error('Must be logged in to delete events')
+
       loading.value = true
       error.value = null
+
+      // First verify ownership
+      const { data: eventData, error: fetchError } = await supabase
+        .from('events')
+        .select('organizer_id')
+        .eq('id', eventId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      console.log('=== DELETE Authorization Check ===')
+      console.log('Event organizer_id:', eventData.organizer_id)
+      console.log('Current user ID:', authStore.user.id)
+      console.log('Match:', eventData.organizer_id === authStore.user.id)
+
+      if (eventData.organizer_id !== authStore.user.id) {
+        throw new Error('You can only delete events you created')
+      }
 
       const { error: deleteError } = await supabase
         .from('events')
         .delete()
         .eq('id', eventId)
+        .eq('organizer_id', authStore.user.id) // Double-check ownership in query
 
       if (deleteError) throw deleteError
 
@@ -150,24 +194,65 @@ export const useEventsStore = defineStore('events', () => {
       loading.value = true
       error.value = null
 
-      const { data, error: registerError } = await supabase
+      // First check if there's an existing registration (including cancelled ones)
+      const { data: existingRegistration, error: checkError } = await supabase
         .from('event_registrations')
-        .insert([{
-          event_id: eventId,
-          volunteer_id: authStore.user.id,
-          status: 'registered'
-        }])
-        .select(`
-          *,
-          event:events(*),
-          volunteer:profiles(*)
-        `)
-        .single()
+        .select('*')
+        .eq('event_id', eventId)
+        .eq('volunteer_id', authStore.user.id)
+        .maybeSingle()
 
-      if (registerError) throw registerError
+      if (checkError) throw checkError
 
-      registrations.value.push(data)
-      return { data, error: null }
+      let result
+
+      if (existingRegistration) {
+        // Update existing registration to 'registered' status
+        const { data, error: updateError } = await supabase
+          .from('event_registrations')
+          .update({ status: 'registered' })
+          .eq('id', existingRegistration.id)
+          .select(`
+            *,
+            event:events(*),
+            volunteer:profiles(*)
+          `)
+          .single()
+
+        if (updateError) throw updateError
+        result = data
+      } else {
+        // Create new registration
+        const { data, error: insertError } = await supabase
+          .from('event_registrations')
+          .insert([{
+            event_id: eventId,
+            volunteer_id: authStore.user.id,
+            status: 'registered'
+          }])
+          .select(`
+            *,
+            event:events(*),
+            volunteer:profiles(*)
+          `)
+          .single()
+
+        if (insertError) throw insertError
+        result = data
+      }
+
+      // Update local registrations array
+      const existingIndex = registrations.value.findIndex(
+        reg => reg.event_id === eventId && reg.volunteer_id === authStore.user.id
+      )
+      
+      if (existingIndex !== -1) {
+        registrations.value[existingIndex] = result
+      } else {
+        registrations.value.push(result)
+      }
+
+      return { data: result, error: null }
     } catch (err: any) {
       error.value = err.message
       return { data: null, error: err.message }
@@ -181,16 +266,18 @@ export const useEventsStore = defineStore('events', () => {
       loading.value = true
       error.value = null
 
-      const { error: cancelError } = await supabase
+      // Delete the registration completely instead of just marking as cancelled
+      const { error: deleteError } = await supabase
         .from('event_registrations')
-        .update({ status: 'cancelled' })
+        .delete()
         .eq('id', registrationId)
 
-      if (cancelError) throw cancelError
+      if (deleteError) throw deleteError
 
+      // Remove from local registrations array
       const index = registrations.value.findIndex(reg => reg.id === registrationId)
       if (index !== -1) {
-        registrations.value[index].status = 'cancelled'
+        registrations.value.splice(index, 1)
       }
 
       return { error: null }
@@ -279,11 +366,11 @@ export const useEventsStore = defineStore('events', () => {
   }
 
   return {
-    events: readonly(events),
-    registrations: readonly(registrations),
-    stats: readonly(stats),
-    loading: readonly(loading),
-    error: readonly(error),
+    events,
+    registrations,
+    stats,
+    loading,
+    error,
     upcomingEvents,
     myEvents,
     myRegistrations,
